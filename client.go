@@ -1,40 +1,24 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"math/rand"
-	"sync"
+	"log"
+	"net"
 	"time"
 )
 
 func main() {
-	wg := &sync.WaitGroup{}
-	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Second)
-	defer cancel()
-	res := make(chan string)
-	defer cancel()
-
-	for range 10 {
-		wg.Add(1)
-		go foo(wg, ctx, res)
+	conn, err := net.Dial("tcp", "192.168.10.39:4040")
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	go func() {
-		wg.Wait()
-		close(res)
-	}()
-
-	for val := range res {
-		fmt.Println(val)
+	buf := make([]byte, 1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("recieved response from server of", n, "bytes", "server addr: ", conn.RemoteAddr().String())
+		time.Sleep(1 * time.Second)
+		conn.Write([]byte("request <-->"))
 	}
-
-}
-
-func foo(wg *sync.WaitGroup, ctx context.Context, res chan<- string) {
-	defer wg.Done()
-	t := rand.Intn(10) + 1
-	time.Sleep(time.Second * time.Duration(t))
-	res <- "foo() completed"
-	
 }
